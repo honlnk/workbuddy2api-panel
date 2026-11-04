@@ -14,7 +14,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
     ports:
-      - "7863:7863"
+      - "127.0.0.1:7863:7863"
     volumes:
       - ./auths:/app/auths
       - ./data:/app/data
@@ -23,3 +23,23 @@ services:
       # 但前提是它能以文件形式写入 —— 挂载目录会挡住这条路径）。
       # 不挂 :ro：面板「配置」页需要写回此文件（保存后热生效）。
       - ./config.json:/app/config.json
+
+  # 提示词净化代理：改写 ZCode 注入的 git 分支说明，避开上游 WAF 的
+  # 提示词注入误判。ZCode 填的地址是 127.0.0.1:18791（见 provider_config.json）。
+  zps:
+    image: honlnk/zcode-prompt-sanitizer:v0.3.2
+    container_name: zps-wb2api
+    restart: unless-stopped
+    command: ["--config", "/data/config.yaml", "--port", "18791"]
+    environment:
+      # 容器内必须绑 0.0.0.0，127.0.0.1 从宿主机连不进来。
+      - ZPS_HOST=0.0.0.0
+    ports:
+      - "127.0.0.1:18791:18791"
+    volumes:
+      - ~/.zcode-prompt-sanitizer-wb2api/config.yaml:/data/config.yaml:ro
+    # 走同一 compose 网络的内部 DNS 直连网关，比 host.docker.internal 更稳。
+    # 但 config.yaml 里已写死 host.docker.internal（旧实例的配置），二选一：
+    # 想改用服务名就把 config.yaml 的 upstream target 改成 http://wb2api:7863
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
