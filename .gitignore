@@ -34,6 +34,8 @@ docs/
 # 设计/计划文档（但 README.md 必须进版本库）
 *.md
 !README.md
+# 本地 agent 技能说明要进版本库，否则拉下来技能不可用
+!.agents/skills/**/*.md
 
 # Windows binaries
 /wb2api.exe
